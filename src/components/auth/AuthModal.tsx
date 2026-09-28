@@ -1,0 +1,292 @@
+import React, { useState } from 'react';
+import { useAuth } from '../../firebase/authContext';
+import { X, Sparkles, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+
+export const AuthModal: React.FC = () => {
+  const {
+    authModalOpen,
+    authModalMode,
+    closeAuthModal,
+    setAuthModalMode,
+    authError,
+    authSuccessMessage,
+    clearAuthError,
+    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    resetPassword,
+  } = useAuth();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!authModalOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearAuthError();
+
+    if (!email) return;
+
+    setIsSubmitting(true);
+    try {
+      if (authModalMode === 'login') {
+        await signInWithEmail(email, password);
+      } else if (authModalMode === 'register') {
+        await signUpWithEmail(email, password, displayName);
+      } else if (authModalMode === 'reset') {
+        await resetPassword(email);
+      }
+    } catch {
+      // Error handled by AuthContext
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    clearAuthError();
+    setIsSubmitting(true);
+    try {
+      await signInWithGoogle();
+    } catch {
+      // Error handled by AuthContext
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div
+        className="w-full max-w-md bg-[#0D0D0D] border border-[#292929] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative text-[#F5F5F5]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Subtle decorative glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-[#C0C0C0]/5 blur-2xl pointer-events-none rounded-full" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#292929]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#111111] border border-[#292929] flex items-center justify-center text-[#C0C0C0]">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-base font-normal tracking-wide text-[#F5F5F5]">
+                {authModalMode === 'login' && 'Sign in to Lilverse'}
+                {authModalMode === 'register' && 'Create Your Lilverse'}
+                {authModalMode === 'reset' && 'Reset Password'}
+              </h2>
+              <p className="text-xs text-[#999999] font-light">
+                {authModalMode === 'login' && 'Sync your journal, memories & dreams securely'}
+                {authModalMode === 'register' && 'Begin your calm, private, cloud-synchronized space'}
+                {authModalMode === 'reset' && 'Receive a password reset link to your email'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={closeAuthModal}
+            className="p-1.5 rounded-lg text-[#999999] hover:text-[#F5F5F5] hover:bg-[#141414] transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Content Body */}
+        <div className="p-6 space-y-4">
+          {/* Feedback messages */}
+          {authError && (
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-950/30 border border-rose-900/50 text-rose-300 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          {authSuccessMessage && (
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-950/30 border border-emerald-900/50 text-emerald-300 text-xs">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{authSuccessMessage}</span>
+            </div>
+          )}
+
+          {/* Google Sign In Button */}
+          {authModalMode !== 'reset' && (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl bg-[#111111] hover:bg-[#191919] border border-[#292929] hover:border-[#383838] text-xs font-light text-[#F5F5F5] transition-all disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24Z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+
+              <div className="flex items-center gap-3 my-2">
+                <div className="flex-1 h-px bg-[#292929]" />
+                <span className="text-[11px] text-[#808080] uppercase tracking-wider font-mono">or email</span>
+                <div className="flex-1 h-px bg-[#292929]" />
+              </div>
+            </>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-3.5">
+            {authModalMode === 'register' && (
+              <div>
+                <label className="block text-[11px] font-light text-[#999999] mb-1.5">
+                  Your Name
+                </label>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-[#808080] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="e.g. Alex"
+                    className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#292929] focus:border-[#C0C0C0] rounded-xl text-xs text-[#F5F5F5] placeholder-[#666666] focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[11px] font-light text-[#999999] mb-1.5">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-[#808080] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#292929] focus:border-[#C0C0C0] rounded-xl text-xs text-[#F5F5F5] placeholder-[#666666] focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            {authModalMode !== 'reset' && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-light text-[#999999]">
+                    Password
+                  </label>
+                  {authModalMode === 'login' && (
+                    <button
+                      type="button"
+                      onClick={() => setAuthModalMode('reset')}
+                      className="text-[11px] text-[#C0C0C0] hover:underline"
+                    >
+                      Forgot?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-[#808080] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    minLength={6}
+                    className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#292929] focus:border-[#C0C0C0] rounded-xl text-xs text-[#F5F5F5] placeholder-[#666666] focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#C0C0C0] hover:bg-[#D9D9D9] text-[#000000] font-medium text-xs tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm shadow-[#C0C0C0]/20"
+            >
+              <span>
+                {isSubmitting
+                  ? 'Connecting...'
+                  : authModalMode === 'login'
+                  ? 'Sign In to Lilverse'
+                  : authModalMode === 'register'
+                  ? 'Create My Lilverse'
+                  : 'Send Reset Link'}
+              </span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </form>
+
+          {/* Mode Switcher */}
+          <div className="pt-2 text-center text-xs text-[#999999] font-light">
+            {authModalMode === 'login' ? (
+              <p>
+                Don't have a synchronized account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setAuthModalMode('register')}
+                  className="text-[#C0C0C0] hover:underline font-normal"
+                >
+                  Create one
+                </button>
+              </p>
+            ) : authModalMode === 'register' ? (
+              <p>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setAuthModalMode('login')}
+                  className="text-[#C0C0C0] hover:underline font-normal"
+                >
+                  Sign in
+                </button>
+              </p>
+            ) : (
+              <p>
+                Remembered your password?{' '}
+                <button
+                  type="button"
+                  onClick={() => setAuthModalMode('login')}
+                  className="text-[#C0C0C0] hover:underline font-normal"
+                >
+                  Back to Sign In
+                </button>
+              </p>
+            )}
+          </div>
+
+          {/* Continue as guest */}
+          <div className="pt-2 border-t border-[#292929] text-center">
+            <button
+              type="button"
+              onClick={closeAuthModal}
+              className="text-[11px] text-[#808080] hover:text-[#999999] transition-colors"
+            >
+              Stay in offline/local mode
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
